@@ -3,10 +3,11 @@ package lightpool
 import (
 	"LightSqlPool/pkg/types"
 	"errors"
+	"time"
 )
 
 type LightPool struct {
-	firstList          []*LightConnection
+	firstList          *readList
 	secondList         chan (*LightConnection)
 	maxConnections     int32
 	minConnections     int32
@@ -21,7 +22,7 @@ type LightConnection struct {
 	updateAt   int64
 	isInUse    bool
 	isRepay    bool
-	connection interface{}
+	Connection interface{}
 }
 
 type PoolConfig struct {
@@ -38,9 +39,12 @@ func NewLightPool(c *PoolConfig) (*LightPool, error) {
 	if c.WaitTimeout <= 0 {
 		c.WaitTimeout = -1
 	}
-
+	rl, err := newReadList(c.MaxConnections)
+	if err != nil {
+		return nil, errors.New("ReadList init error")
+	}
 	pool := &LightPool{
-		firstList:       make([]*LightConnection, 0),
+		firstList:       rl,
 		secondList:      make(chan *LightConnection, 128),
 		maxConnections:  c.MaxConnections,
 		minConnections:  c.MinConnections,
@@ -49,16 +53,24 @@ func NewLightPool(c *PoolConfig) (*LightPool, error) {
 		creator:         c.creator,
 	}
 
+	now := time.Now().UnixMilli()
 	for i := int32(0); i < pool.minConnections; i++ {
 		conn, err := pool.creator.Create()
 		if err != nil {
 			pool.creator.Close(conn)
 			return nil, errors.New("Open connection error")
 		}
-
+		lc := &LightConnection{
+			pool:       pool,
+			updateAt:   now,
+			isInUse:    false,
+			isRepay:    true,
+			Connection: conn,
+		}
+		pool.firstList.data[i] = lc
 	}
+	pool.firstList.size += pool.minConnections
 	return pool, nil
-
 }
 
 func (this *LightPool) Get() {
