@@ -3,8 +3,13 @@ package lightpool
 import (
 	"LightSqlPool/pkg/types"
 	"errors"
+	"sync"
+	"sync/atomic"
 	"time"
 )
+
+const NOT_IN_USE = 0
+const IN_USE = 1
 
 type LightPool struct {
 	firstList          *readList
@@ -15,12 +20,13 @@ type LightPool struct {
 	idleConnections    int32
 	waitTimeout        int64
 	creator            types.ConnectionCreator
+	mu                 *sync.Mutex
 }
 
 type LightConnection struct {
 	pool       *LightPool
 	updateAt   int64
-	isInUse    bool
+	isInUse    int32
 	isRepay    bool
 	Connection interface{}
 }
@@ -63,7 +69,7 @@ func NewLightPool(c *PoolConfig) (*LightPool, error) {
 		lc := &LightConnection{
 			pool:       pool,
 			updateAt:   now,
-			isInUse:    false,
+			isInUse:    NOT_IN_USE,
 			isRepay:    true,
 			Connection: conn,
 		}
@@ -73,8 +79,40 @@ func NewLightPool(c *PoolConfig) (*LightPool, error) {
 	return pool, nil
 }
 
-func (this *LightPool) Get() {
-
+func (this *LightPool) Get() (*LightConnection, error) {
+	for c := 0; c < 2; c++ {
+		for i := int32(0); i < this.firstList.size; i++ {
+			lc := this.firstList.data[i]
+			ok := atomic.CompareAndSwapInt32(&lc.isInUse, NOT_IN_USE, IN_USE)
+			if ok {
+				lc.isRepay = false
+				return lc, nil
+			}
+		}
+	}
+	if this.currentConnections < this.maxConnections {
+		this.mu.Lock()
+		if this.currentConnections < this.maxConnections {
+			defer this.mu.Unlock()
+			conn, err := this.creator.Create()
+			if err != nil {
+				return nil, errors.New("Open connection error")
+			}
+			now := time.Now().UnixMilli()
+			lc := &LightConnection{
+				pool:       this,
+				updateAt:   now,
+				isInUse:    NOT_IN_USE,
+				isRepay:    true,
+				Connection: conn,
+			}
+			this.currentConnections += 1
+			return lc, nil
+		} else {
+			this.mu.Unlock()
+		}
+	}
+	return nil, nil
 }
 
 func (this *LightPool) Repay() {
