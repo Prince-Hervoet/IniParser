@@ -36,11 +36,11 @@ type PoolConfig struct {
 	CoreConnections int32
 	MaxConnections  int32
 	WaitTimeout     int64
-	creator         types.ConnectionCreator
+	Creator         types.ConnectionCreator
 }
 
 func NewLightPool(c *PoolConfig) (*LightPool, error) {
-	if c.MaxConnections <= 0 || c.CoreConnections <= 0 || c.creator == nil {
+	if c.MaxConnections <= 0 || c.CoreConnections <= 0 || c.Creator == nil {
 		return nil, errors.New("invalid number")
 	}
 	if c.WaitTimeout <= 0 {
@@ -53,7 +53,7 @@ func NewLightPool(c *PoolConfig) (*LightPool, error) {
 		coreConnections: c.CoreConnections,
 		waitTimeout:     c.WaitTimeout,
 		idleConnections: 0,
-		creator:         c.creator,
+		creator:         c.Creator,
 	}
 	now := time.Now().UnixMilli()
 	for i := int32(0); i < pool.coreConnections; i++ {
