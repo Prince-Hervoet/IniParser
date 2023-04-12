@@ -1,7 +1,6 @@
 package lightpool
 
 import (
-	"errors"
 	"sync"
 )
 
@@ -14,28 +13,16 @@ type readList struct {
 	size  int32
 }
 
-func newReadList(limit int32) (*readList, error) {
+func newReadList(limit int32) *readList {
 	if limit < 0 {
 		limit = DEFAULT_LIMIT
 	} else if limit == 0 {
-		return nil, errors.New("Limit is 0")
+		return nil
 	}
 	return &readList{
 		mu:    &sync.Mutex{},
 		data:  make([]*LightConnection, limit),
 		limit: limit,
 		size:  0,
-	}, nil
-}
-
-func (this *readList) get(index int32) interface{} {
-	return this.data[index]
-}
-
-func (this *readList) getSize() int32 {
-	return this.size
-}
-
-func (this *readList) update() {
-
+	}
 }

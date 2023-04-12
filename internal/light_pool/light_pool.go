@@ -13,7 +13,7 @@ const IN_USE = 1
 
 type LightPool struct {
 	firstList          *readList
-	secondList         chan (*LightConnection)
+	secondList         *waitList
 	maxConnections     int32
 	minConnections     int32
 	currentConnections int32
@@ -28,7 +28,8 @@ type LightConnection struct {
 	updateAt   int64
 	isInUse    int32
 	isRepay    bool
-	Connection interface{}
+	isCore     bool
+	connection interface{}
 }
 
 type PoolConfig struct {
@@ -40,38 +41,34 @@ type PoolConfig struct {
 
 func NewLightPool(c *PoolConfig) (*LightPool, error) {
 	if c.MaxConnections <= 0 || c.MinConnections <= 0 || c.creator == nil {
-		return nil, errors.New("Invalid number")
+		return nil, errors.New("invalid number")
 	}
 	if c.WaitTimeout <= 0 {
 		c.WaitTimeout = -1
 	}
-	rl, err := newReadList(c.MaxConnections)
-	if err != nil {
-		return nil, errors.New("ReadList init error")
-	}
 	pool := &LightPool{
-		firstList:       rl,
-		secondList:      make(chan *LightConnection, 128),
+		firstList:       newReadList(c.MaxConnections),
+		secondList:      newWaitList(c.MaxConnections),
 		maxConnections:  c.MaxConnections,
 		minConnections:  c.MinConnections,
 		waitTimeout:     c.WaitTimeout,
 		idleConnections: 0,
 		creator:         c.creator,
 	}
-
 	now := time.Now().UnixMilli()
 	for i := int32(0); i < pool.minConnections; i++ {
 		conn, err := pool.creator.Create()
 		if err != nil {
 			pool.creator.Close(conn)
-			return nil, errors.New("Open connection error")
+			return nil, errors.New("open connection error")
 		}
 		lc := &LightConnection{
 			pool:       pool,
 			updateAt:   now,
 			isInUse:    NOT_IN_USE,
 			isRepay:    true,
-			Connection: conn,
+			isCore:     true,
+			connection: conn,
 		}
 		pool.firstList.data[i] = lc
 	}
@@ -91,20 +88,21 @@ func (this *LightPool) Get() (*LightConnection, error) {
 		}
 	}
 	if this.currentConnections < this.maxConnections {
+		now := time.Now().UnixMilli()
 		this.mu.Lock()
 		if this.currentConnections < this.maxConnections {
 			defer this.mu.Unlock()
 			conn, err := this.creator.Create()
 			if err != nil {
-				return nil, errors.New("Open connection error")
+				return nil, errors.New("open connection error")
 			}
-			now := time.Now().UnixMilli()
 			lc := &LightConnection{
 				pool:       this,
 				updateAt:   now,
 				isInUse:    NOT_IN_USE,
 				isRepay:    true,
-				Connection: conn,
+				isCore:     false,
+				connection: conn,
 			}
 			this.currentConnections += 1
 			return lc, nil
@@ -112,13 +110,36 @@ func (this *LightPool) Get() (*LightConnection, error) {
 			this.mu.Unlock()
 		}
 	}
-	return nil, nil
+
+	lc := this.secondList.get()
+	return lc, nil
 }
 
-func (this *LightPool) Repay() {
-
+func (this *LightPool) repay(lc *LightConnection) {
+	if lc == nil {
+		return
+	}
+	if lc.isCore {
+		lc.isInUse = NOT_IN_USE
+	} else {
+		if !this.secondList.put(lc) {
+			this.creator.Close(lc)
+		}
+	}
 }
 
 func (this *LightPool) Close() {
 
+}
+
+func (this *LightConnection) Get() (interface{}, error) {
+	if this.isRepay {
+		return nil, errors.New("this connecion has been repaid")
+	}
+	return this.connection, nil
+}
+
+func (this *LightConnection) Repay() {
+	this.isRepay = true
+	this.pool.repay(this)
 }
