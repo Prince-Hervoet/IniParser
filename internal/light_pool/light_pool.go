@@ -15,7 +15,7 @@ type LightPool struct {
 	firstList          *readList
 	secondList         *waitList
 	maxConnections     int32
-	minConnections     int32
+	coreConnections    int32
 	currentConnections int32
 	idleConnections    int32
 	waitTimeout        int64
@@ -33,14 +33,14 @@ type LightConnection struct {
 }
 
 type PoolConfig struct {
-	MinConnections int32
-	MaxConnections int32
-	WaitTimeout    int64
-	creator        types.ConnectionCreator
+	CoreConnections int32
+	MaxConnections  int32
+	WaitTimeout     int64
+	creator         types.ConnectionCreator
 }
 
 func NewLightPool(c *PoolConfig) (*LightPool, error) {
-	if c.MaxConnections <= 0 || c.MinConnections <= 0 || c.creator == nil {
+	if c.MaxConnections <= 0 || c.CoreConnections <= 0 || c.creator == nil {
 		return nil, errors.New("invalid number")
 	}
 	if c.WaitTimeout <= 0 {
@@ -50,13 +50,13 @@ func NewLightPool(c *PoolConfig) (*LightPool, error) {
 		firstList:       newReadList(c.MaxConnections),
 		secondList:      newWaitList(c.MaxConnections),
 		maxConnections:  c.MaxConnections,
-		minConnections:  c.MinConnections,
+		coreConnections: c.CoreConnections,
 		waitTimeout:     c.WaitTimeout,
 		idleConnections: 0,
 		creator:         c.creator,
 	}
 	now := time.Now().UnixMilli()
-	for i := int32(0); i < pool.minConnections; i++ {
+	for i := int32(0); i < pool.coreConnections; i++ {
 		conn, err := pool.creator.Create()
 		if err != nil {
 			pool.creator.Close(conn)
@@ -72,7 +72,7 @@ func NewLightPool(c *PoolConfig) (*LightPool, error) {
 		}
 		pool.firstList.data[i] = lc
 	}
-	pool.firstList.size += pool.minConnections
+	pool.firstList.size += pool.coreConnections
 	return pool, nil
 }
 
@@ -110,7 +110,6 @@ func (this *LightPool) Get() (*LightConnection, error) {
 			this.mu.Unlock()
 		}
 	}
-
 	lc := this.secondList.get()
 	return lc, nil
 }
@@ -124,12 +123,9 @@ func (this *LightPool) repay(lc *LightConnection) {
 	} else {
 		if !this.secondList.put(lc) {
 			this.creator.Close(lc)
+			this.currentConnections -= 1
 		}
 	}
-}
-
-func (this *LightPool) Close() {
-
 }
 
 func (this *LightConnection) Get() (interface{}, error) {
