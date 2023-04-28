@@ -5,7 +5,11 @@ namespace cts
     void taskFunc(void *args)
     {
         cts::Thread *tt = (cts::Thread *)args;
+        while (tt->task)
+        {
+            (tt->task)(tt->args);
         }
+    }
 }
 
 void cts::Thread::start()
