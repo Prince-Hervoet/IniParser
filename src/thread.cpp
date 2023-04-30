@@ -1,18 +1,15 @@
 #include "thread.hpp"
 
-namespace cts
+void taskFunc(void *args)
 {
-    void taskFunc(void *args)
+    Thread *tt = (Thread *)args;
+    while (tt->task)
     {
-        cts::Thread *tt = (cts::Thread *)args;
-        while (tt->task)
-        {
-            (tt->task)(tt->args);
-        }
+        (tt->task)(tt->args);
     }
 }
 
-void cts::Thread::start()
+void Thread::start()
 {
     if (this->hasStarted)
     {
@@ -22,7 +19,7 @@ void cts::Thread::start()
     std::thread(taskFunc, this);
 }
 
-void cts::Thread::stop()
+void Thread::stop()
 {
     if (!this->hasStarted)
     {

@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.5)
+project(TP)
+aux_source_directory(./src DIR_SOURCES_1)
+include_directories(./src)
+add_executable(TP ${DIR_SOURCES_1})

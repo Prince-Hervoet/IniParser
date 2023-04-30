@@ -35,6 +35,7 @@ public:
         }
         list.insert(&t);
         size++;
+        cond.notify_one();
         return 1;
     }
 
@@ -59,6 +60,7 @@ public:
         T *t = list.front();
         list.pop_front();
         size--;
+        cond.notify_one();
         return t;
     }
 

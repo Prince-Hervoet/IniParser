@@ -1,8 +1,9 @@
 #include <iostream>
-#include <list>
+#include <vector>
 #include <mutex>
-#include "thread.hpp"
+typedef void (*Task)(void *);
 
+class Thread;
 const int INIT = 0;
 const int RUNNING = 1;
 const int STOP = 2;
@@ -16,11 +17,11 @@ private:
     int coreLimit = 0;
     int coreSize = 0;
     int queueLimit = 0;
-    std::list<cts::Thread *> threads;
+    std::vector<Thread *> threads;
     std::mutex mu;
     volatile int status = INIT;
 
-    int addThread(bool isCore, Task task);
+    bool addThread(bool isCore, Task task);
     int addTaskToQueue(Task task);
 
 public:

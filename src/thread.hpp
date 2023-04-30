@@ -1,21 +1,24 @@
 #include <thread>
 typedef void (*Task)(void *);
-namespace cts
+
+class Thread
 {
-    class Thread
+    friend void taskFunc(void *args);
+
+private:
+    std::thread::id id;
+    // task
+    Task task;
+    void *args;
+    bool isCore;
+    bool hasStarted = false;
+    bool isStop = false;
+
+public:
+    Thread(bool isCore)
     {
-        friend void taskFunc(void *args);
-
-    private:
-        std::thread::id id;
-        Task task;
-        void *args;
-        bool isCore;
-        bool hasStarted = false;
-        bool isStop = false;
-
-    public:
-        void start();
-        void stop();
-    };
-}
+        this->isCore = isCore;
+    }
+    void start();
+    void stop();
+};
