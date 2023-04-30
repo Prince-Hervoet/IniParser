@@ -1,11 +1,12 @@
 #include "thread.hpp"
+#include "pool.hpp"
 
-void taskFunc(void *args)
+void packTaskFunc(void *args)
 {
     Thread *tt = (Thread *)args;
-    while (tt->task)
+    while (tt->tc || (tt->tc = tt->pool->taskQueue->pop(0)))
     {
-        (tt->task)(tt->args);
+        tt->tc->run();
     }
 }
 
@@ -16,7 +17,7 @@ void Thread::start()
         return;
     }
     this->hasStarted = true;
-    std::thread(taskFunc, this);
+    std::thread t(packTaskFunc, this);
 }
 
 void Thread::stop()

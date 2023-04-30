@@ -1,15 +1,11 @@
 #include "pool.hpp"
 #include "thread.hpp"
 
-int ThreadPool::commit(Task task)
+int ThreadPool::commit(TaskCommit &task)
 {
-    if (!task)
-    {
-        return -1;
-    }
     if (this->coreSize < this->coreLimit)
     {
-        if (this->addThread(true, task))
+        if (this->addThread(true, &task))
         {
             return 1;
         }
@@ -18,7 +14,7 @@ int ThreadPool::commit(Task task)
     {
         return -1;
     }
-    if (this->addTaskToQueue(task))
+    if (this->addTaskToQueue(&task))
     {
         return 1;
     }
@@ -29,19 +25,18 @@ int ThreadPool::commit(Task task)
     return -1;
 }
 
-bool ThreadPool::addThread(bool isCore, Task task)
+bool ThreadPool::addThread(bool isCore, TaskCommit *task)
 {
+    Thread *thread = nullptr;
     if (isCore && this->coreSize < this->coreLimit)
     {
         mu.lock();
         if (this->coreSize < this->coreLimit)
         {
-            Thread *thread = new Thread(true);
+            thread = new Thread(true, task);
             threads.push_back(thread);
             this->coreSize++;
             this->size++;
-            mu.unlock();
-            return true;
         }
         mu.unlock();
     }
@@ -52,18 +47,26 @@ bool ThreadPool::addThread(bool isCore, Task task)
             mu.lock();
             if (this->size < this->limit)
             {
-                Thread *thread = new Thread(false);
+                thread = new Thread(false, task);
                 threads.push_back(thread);
                 this->size++;
-                mu.unlock();
-                return true;
             }
             mu.unlock();
         }
     }
+    if (thread)
+    {
+        thread->start();
+        return true;
+    }
     return false;
 }
 
-int ThreadPool::addTaskToQueue(Task task)
+bool ThreadPool::addTaskToQueue(TaskCommit *task)
 {
+    if (!task)
+    {
+        return false;
+    }
+    return true;
 }

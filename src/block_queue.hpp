@@ -4,7 +4,6 @@
 #include <chrono>
 
 template <typename T>
-
 class BlockQueue
 {
 private:
@@ -15,7 +14,7 @@ private:
     std::condition_variable cond;
 
 public:
-    int add(T &t)
+    int add(T &t, int waitTime)
     {
         std::unique_lock<std::mutex> lck(mu);
         while (size == limit)

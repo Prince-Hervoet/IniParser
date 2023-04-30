@@ -1,6 +1,9 @@
+#pragma once
 #include <iostream>
 #include <vector>
 #include <mutex>
+#include "block_queue.hpp"
+
 typedef void (*Task)(void *);
 
 class Thread;
@@ -9,8 +12,18 @@ const int RUNNING = 1;
 const int STOP = 2;
 const int OVER = 3;
 
+class TaskCommit
+{
+public:
+    TaskCommit() {}
+    virtual void run() = 0;
+};
+
 class ThreadPool
 {
+    friend class Thread;
+    friend void packTaskFunc(void *args);
+
 private:
     int limit = 0;
     int size = 0;
@@ -18,11 +31,12 @@ private:
     int coreSize = 0;
     int queueLimit = 0;
     std::vector<Thread *> threads;
+    BlockQueue<TaskCommit> *taskQueue;
     std::mutex mu;
     volatile int status = INIT;
 
-    bool addThread(bool isCore, Task task);
-    int addTaskToQueue(Task task);
+    bool addThread(bool isCore, TaskCommit *task);
+    bool addTaskToQueue(TaskCommit *task);
 
 public:
     ThreadPool()
@@ -62,7 +76,6 @@ public:
         return this;
     }
 
-    int
-    commit(Task task);
+    int commit(TaskCommit &task);
     void stop();
 };
