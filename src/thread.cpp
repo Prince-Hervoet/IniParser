@@ -7,6 +7,10 @@ void packTaskFunc(void *args)
     while (tt->tc || (tt->tc = tt->pool->taskQueue->pop(0)))
     {
         tt->tc->run();
+        if (!tt->isCore)
+        {
+            break;
+        }
     }
 }
 

@@ -43,6 +43,7 @@ private:
 
     bool addThread(bool isCore, TaskCommit *task);
     bool addTaskToQueue(TaskCommit *task);
+    void executeRejectRule();
 
 public:
     ThreadPool()
@@ -89,6 +90,7 @@ public:
             return this;
         }
         this->rejectRule = rule;
+        return this;
     }
 
     int commit(TaskCommit &task);

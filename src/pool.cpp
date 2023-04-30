@@ -22,6 +22,10 @@ int ThreadPool::commit(TaskCommit &task)
     {
         return 1;
     }
+
+    if (this->status < STOP)
+    {
+    }
     return -1;
 }
 
@@ -73,4 +77,8 @@ bool ThreadPool::addTaskToQueue(TaskCommit *task)
         return true;
     }
     return false;
+}
+
+void ThreadPool::executeRejectRule()
+{
 }
