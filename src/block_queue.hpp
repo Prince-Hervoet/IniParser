@@ -14,7 +14,7 @@ private:
     std::condition_variable cond;
 
 public:
-    int add(T &t, int waitTime)
+    bool add(T &t, int waitTime)
     {
         std::unique_lock<std::mutex> lck(mu);
         while (size == limit)
@@ -23,19 +23,23 @@ public:
             {
                 cond.wait(lck);
             }
-            else
+            else if (waitTime > 0)
             {
                 cond.wait_for(lck, std::chrono::milliseconds(waitTime));
                 if (size == limit)
                 {
-                    return -1;
+                    return false;
                 }
+            }
+            else
+            {
+                return false;
             }
         }
         list.insert(&t);
         size++;
         cond.notify_one();
-        return 1;
+        return true;
     }
 
     T *pop(int waitTime)
@@ -47,13 +51,17 @@ public:
             {
                 cond.wait(lck);
             }
-            else
+            else if (waitTime > 0)
             {
                 cond.wait_for(lck, std::chrono::milliseconds(waitTime));
                 if (size == 0)
                 {
                     return nullptr;
                 }
+            }
+            else
+            {
+                return nullptr;
             }
         }
         T *t = list.front();

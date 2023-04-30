@@ -12,6 +12,11 @@ const int RUNNING = 1;
 const int STOP = 2;
 const int OVER = 3;
 
+const int REJECT_BLOCK = 10;
+const int REJECT_ERROR = 11;
+const int REJECT_FORCE = 12;
+const int REJECT_LAST = 13;
+
 class TaskCommit
 {
 public:
@@ -30,6 +35,7 @@ private:
     int coreLimit = 0;
     int coreSize = 0;
     int queueLimit = 0;
+    int rejectRule = REJECT_BLOCK;
     std::vector<Thread *> threads;
     BlockQueue<TaskCommit> *taskQueue;
     std::mutex mu;
@@ -74,6 +80,15 @@ public:
     {
         this->queueLimit = limit;
         return this;
+    }
+
+    ThreadPool *setRejectRule(int rule)
+    {
+        if (rule < REJECT_BLOCK || rule > REJECT_LAST)
+        {
+            return this;
+        }
+        this->rejectRule = rule;
     }
 
     int commit(TaskCommit &task);

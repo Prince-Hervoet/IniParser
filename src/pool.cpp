@@ -18,7 +18,7 @@ int ThreadPool::commit(TaskCommit &task)
     {
         return 1;
     }
-    if (this->addThread(false, nullptr))
+    if (this->addThread(false, &task))
     {
         return 1;
     }
@@ -68,5 +68,9 @@ bool ThreadPool::addTaskToQueue(TaskCommit *task)
     {
         return false;
     }
-    return true;
+    if (this->taskQueue->add(*task, 0))
+    {
+        return true;
+    }
+    return false;
 }
