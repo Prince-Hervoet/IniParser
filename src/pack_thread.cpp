@@ -7,16 +7,14 @@ void PackThread::packRunFunc(void *args)
     PackThread *pt = (PackThread *)args;
     CommitTask *task = pt->task;
     int waitTime = pt->isCore ? 500 : 0;
+
     try
     {
         for (; !pt->isStop;)
         {
             while (task || (task = pt->tp->tasks.pop(waitTime)))
             {
-                pt->tp->interruptMu.lock();
-                pt->status = THREAD_RUNNING;
-                pt->tp->interruptMu.unlock();
-                pt->freeTime = getNowTimestamp();
+
                 try
                 {
                     task->run();
@@ -25,11 +23,9 @@ void PackThread::packRunFunc(void *args)
                 {
                     std::cout << msg << std::endl;
                 }
+                std::cout << "asdfasdfasdf" << std::endl;
                 delete task;
                 task = nullptr;
-                pt->tp->interruptMu.lock();
-                pt->status = THREAD_READY;
-                pt->tp->interruptMu.unlock();
             }
             if (!pt->isCore)
             {

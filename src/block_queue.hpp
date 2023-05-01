@@ -1,3 +1,4 @@
+#pragma once
 #include <list>
 #include <mutex>
 #include <condition_variable>
@@ -6,13 +7,20 @@ template <typename T>
 class BlockQueue
 {
 private:
-    std::list<T *> list;
+    std::list<T> content;
     int size = 0;
-    int limit = 0;
+    int limit = 1000;
     std::mutex mu;
     std::condition_variable cond;
 
 public:
+    BlockQueue()
+    {
+    }
+    BlockQueue(int limit)
+    {
+        this->limit = limit > 0 ? limit : 500;
+    }
     bool add(T &t, int waitTime)
     {
         std::unique_lock<std::mutex> lck(mu);
@@ -35,13 +43,13 @@ public:
                 return false;
             }
         }
-        list.insert(&t);
+        content.push_back(t);
         size++;
         cond.notify_one();
         return true;
     }
 
-    T *pop(int waitTime)
+    T pop(int waitTime)
     {
         std::unique_lock<std::mutex> lck(mu);
         while (size == 0)
@@ -55,16 +63,16 @@ public:
                 cond.wait_for(lck, std::chrono::milliseconds(waitTime));
                 if (size == 0)
                 {
-                    return nullptr;
+                    return NULL;
                 }
             }
             else
             {
-                return nullptr;
+                return NULL;
             }
         }
-        T *t = list.front();
-        list.pop_front();
+        T t = content.front();
+        content.pop_front();
         size--;
         cond.notify_one();
         return t;

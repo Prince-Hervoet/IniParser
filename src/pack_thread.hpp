@@ -6,12 +6,8 @@
 #define THREAD_RUNNING 2
 
 class ThreadPool;
+class CommitTask;
 typedef void (*PackFunc)(void *);
-class CommitTask
-{
-public:
-    virtual void run() = 0;
-};
 
 class PackThread
 {
@@ -40,6 +36,11 @@ public:
 
     PackThread(bool isCore, CommitTask *task)
         : isCore(isCore), task(task)
+    {
+    }
+
+    PackThread(bool isCore, CommitTask *task, ThreadPool *tp)
+        : isCore(isCore), task(task), tp(tp)
     {
     }
     void start();

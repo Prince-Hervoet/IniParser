@@ -1,22 +1,25 @@
 #include "pool.hpp"
-
+#include <iostream>
+// std::cout << "asdfasdfasdf" << std::endl;
 int ThreadPool::commit(CommitTask *task)
 {
     if (!task)
     {
         return -1;
     }
-    else if (this->status.load() >= STOP)
+    else if (this->status >= STOP)
     {
         return 0;
     }
     if (this->coreSize < this->coreLimit)
     {
+
         if (this->addThread(true, task))
         {
+
             return 1;
         }
-        if (this->status.load() >= STOP)
+        if (this->status >= STOP)
         {
             return 0;
         }
@@ -39,7 +42,7 @@ int ThreadPool::commit(CommitTask *task)
 
 bool ThreadPool::addThread(bool isCore, CommitTask *task)
 {
-    if (this->status.load() >= STOP)
+    if (this->status >= STOP)
     {
         return false;
     }
@@ -47,9 +50,10 @@ bool ThreadPool::addThread(bool isCore, CommitTask *task)
     if (isCore && this->coreSize < this->coreLimit)
     {
         mu.lock();
-        if (this->coreSize < this->coreLimit && this->status.load() < STOP)
+        if (this->coreSize < this->coreLimit && this->status < STOP)
         {
-            thread = new PackThread(isCore, task);
+
+            thread = new PackThread(isCore, task, this);
             this->threads.push_back(thread);
             coreSize += 1;
         }
@@ -61,9 +65,9 @@ bool ThreadPool::addThread(bool isCore, CommitTask *task)
         if (this->size < this->limit)
         {
             mu.lock();
-            if (this->size < this->limit && this->status.load() < STOP)
+            if (this->size < this->limit && this->status < STOP)
             {
-                thread = new PackThread(isCore, task);
+                thread = new PackThread(isCore, task, this);
                 this->threads.push_back(thread);
                 size += 1;
             }
@@ -74,27 +78,36 @@ bool ThreadPool::addThread(bool isCore, CommitTask *task)
     {
         return false;
     }
+    thread->start();
     return true;
 }
 
 bool ThreadPool::addToQueue(CommitTask *task)
 {
-    return this->tasks.add(*task, 0);
+    return this->tasks.add(task, 0);
 }
 
 bool ThreadPool::solveRemain()
 {
-    bool isStop = false;
+    bool isPoolStop = false;
     mu.lock();
-    if (status.load() >= STOP && tasks.getSize() > 0)
+    if (status >= STOP && tasks.getSize() > 0)
     {
-        isStop = true;
+        isPoolStop = true;
         this->addThread(false, nullptr);
     }
     mu.unlock();
-    return isStop;
+    return isPoolStop;
 }
 
 void clearThread(PackThread *target)
+{
+}
+
+void ThreadPool::reject()
+{
+}
+
+void ThreadPool::clearThread(PackThread *target)
 {
 }

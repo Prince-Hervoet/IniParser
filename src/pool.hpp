@@ -11,6 +11,12 @@ const int STOP = 20;
 const int TERMINATION = 30;
 
 typedef long long longtime;
+class CommitTask
+{
+public:
+    virtual void run() = 0;
+    CommitTask() {}
+};
 
 class ThreadPool
 {
@@ -23,12 +29,12 @@ private:
     int coreLimit = 0;
     int liveTime = 0;
     int rejectType = 0;
+    int status = RUNNING;
     longtime startTimestamp;
     std::mutex mu;
     std::mutex interruptMu;
-    std::atomic<int> status;
     std::vector<PackThread *> threads;
-    BlockQueue<CommitTask> tasks;
+    BlockQueue<CommitTask *> tasks;
     bool addThread(bool isCore, CommitTask *task);
     bool addToQueue(CommitTask *task);
     bool solveRemain();
@@ -39,9 +45,7 @@ public:
     int commit(CommitTask *task);
     void stop()
     {
-        int a = RUNNING;
-        int b = STOP;
-        status.compare_exchange_strong(a, b);
+        this->status = STOP;
     }
 
     ThreadPool()
@@ -49,7 +53,9 @@ public:
     {
     }
 
-    ThreadPool *setLimit(int limit)
+    ThreadPool
+        *
+        setLimit(int limit)
     {
         this->limit = limit;
         return this;
