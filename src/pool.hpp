@@ -1,68 +1,52 @@
 #pragma once
-#include <iostream>
-#include <vector>
-#include <mutex>
+#include "pack_thread.hpp"
 #include "block_queue.hpp"
+#include <vector>
+#include <atomic>
+#include <mutex>
+#include <chrono>
 
-typedef void (*Task)(void *);
+const int RUNNING = 10;
+const int STOP = 20;
+const int TERMINATION = 30;
 
-class Thread;
-const int INIT = 0;
-const int RUNNING = 1;
-const int STOP = 2;
-const int OVER = 3;
-
-const int REJECT_BLOCK = 10;
-const int REJECT_ERROR = 11;
-const int REJECT_FORCE = 12;
-const int REJECT_LAST = 13;
-
-class TaskCommit
-{
-public:
-    TaskCommit() {}
-    virtual void run() = 0;
-};
+typedef long long longtime;
 
 class ThreadPool
 {
-    friend class Thread;
-    friend void packTaskFunc(void *args);
+    friend class PackThread;
 
 private:
-    int limit = 0;
     int size = 0;
-    int coreLimit = 0;
+    int limit = 0;
     int coreSize = 0;
-    int queueLimit = 0;
-    int rejectRule = REJECT_BLOCK;
-    std::vector<Thread *> threads;
-    BlockQueue<TaskCommit> *taskQueue;
+    int coreLimit = 0;
+    int liveTime = 0;
+    int rejectType = 0;
+    longtime startTimestamp;
     std::mutex mu;
-    volatile int status = INIT;
-
-    bool addThread(bool isCore, TaskCommit *task);
-    bool addTaskToQueue(TaskCommit *task);
-    void executeRejectRule();
+    std::mutex interruptMu;
+    std::atomic<int> status;
+    std::vector<PackThread *> threads;
+    BlockQueue<CommitTask> tasks;
+    bool addThread(bool isCore, CommitTask *task);
+    bool addToQueue(CommitTask *task);
+    bool solveRemain();
+    void reject();
+    void clearThread(PackThread *target);
 
 public:
+    int commit(CommitTask *task);
+    void stop()
+    {
+        int a = RUNNING;
+        int b = STOP;
+        status.compare_exchange_strong(a, b);
+    }
+
     ThreadPool()
+        : status(RUNNING)
     {
-    }
-
-    int getSize()
-    {
-        return size;
-    }
-
-    int getCoreSize()
-    {
-        return coreSize;
-    }
-
-    int getStatus()
-    {
-        return status;
     }
 
     ThreadPool *setLimit(int limit)
@@ -77,22 +61,9 @@ public:
         return this;
     }
 
-    ThreadPool *setQueueLimit(int limit)
+    ThreadPool *setRejectType(int type)
     {
-        this->queueLimit = limit;
+        this->rejectType = type;
         return this;
     }
-
-    ThreadPool *setRejectRule(int rule)
-    {
-        if (rule < REJECT_BLOCK || rule > REJECT_LAST)
-        {
-            return this;
-        }
-        this->rejectRule = rule;
-        return this;
-    }
-
-    int commit(TaskCommit &task);
-    void stop();
 };

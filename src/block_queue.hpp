@@ -1,7 +1,6 @@
 #include <list>
 #include <mutex>
 #include <condition_variable>
-#include <chrono>
 
 template <typename T>
 class BlockQueue
@@ -74,5 +73,15 @@ public:
     int getSize()
     {
         return size;
+    }
+
+    void clear()
+    {
+        mu.lock();
+        if (size == 0)
+        {
+            mu.unlock();
+            return;
+        }
     }
 };
