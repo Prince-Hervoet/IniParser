@@ -54,7 +54,7 @@ bool ThreadPool::addThread(bool isCore, CommitTask *task)
         {
 
             thread = new PackThread(isCore, task, this);
-            this->threads.push_back(thread);
+            this->threads.insert(thread);
             coreSize += 1;
         }
         mu.unlock();
@@ -68,7 +68,7 @@ bool ThreadPool::addThread(bool isCore, CommitTask *task)
             if (this->size < this->limit && this->status < STOP)
             {
                 thread = new PackThread(isCore, task, this);
-                this->threads.push_back(thread);
+                this->threads.insert(thread);
                 size += 1;
             }
             mu.unlock();

@@ -2,7 +2,7 @@
 #include "pack_thread.hpp"
 #include "block_queue.hpp"
 #include <vector>
-#include <atomic>
+#include <unordered_set>
 #include <mutex>
 #include <chrono>
 
@@ -33,7 +33,7 @@ private:
     longtime startTimestamp;
     std::mutex mu;
     std::mutex interruptMu;
-    std::vector<PackThread *> threads;
+    std::unordered_set<PackThread *> threads;
     BlockQueue<CommitTask *> tasks;
     bool addThread(bool isCore, CommitTask *task);
     bool addToQueue(CommitTask *task);
@@ -53,9 +53,7 @@ public:
     {
     }
 
-    ThreadPool
-        *
-        setLimit(int limit)
+    ThreadPool *setLimit(int limit)
     {
         this->limit = limit;
         return this;
