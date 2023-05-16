@@ -27,7 +27,7 @@ public:
             offerCond.wait(lock);
         }
         data.push(t);
-        offerCond.notify_one();
+        pollCond.notify_one();
     }
 
     T poll()
@@ -35,7 +35,7 @@ public:
         std::unique_lock<std::mutex> lock(mu);
         while (data.size() == 0)
         {
-            offerCond.wait(lock);
+            pollCond.wait(lock);
         }
         T t = data.front();
         data.pop();
@@ -51,7 +51,7 @@ public:
             return false;
         }
         data.push(t);
-        offerCond.notify_one();
+        pollCond.notify_one();
         return true;
     }
 
