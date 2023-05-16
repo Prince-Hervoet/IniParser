@@ -1,4 +1,5 @@
 #include <deque>
+#include <initializer_list>
 #include "simple_block_queue.hpp"
 #include "forthread.hpp"
 #include "expection.hpp"
@@ -20,12 +21,14 @@ private:
     bool createWorker(Task *task, bool isCore);
     bool addToQueue(Task *task);
     void checkStop();
+    static void batchFunc();
 
 public:
     ThreadPool();
     ThreadPool(int coreLimit, int maxLimit);
     ThreadPool(int coreLimit, int maxLimit, int rejectMode);
     int commit(CommitTask task, void *args);
-    Expection *commitAndGet(CommitTask task, void *args);
+    Expection *commitGet(CommitTask task, void *args);
+    void commitBatch(std::initializer_list<CommitTask> tasks);
     void stop();
 };

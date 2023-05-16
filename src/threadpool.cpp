@@ -86,3 +86,11 @@ bool ThreadPool::createWorker(Task *task, bool isCore)
     }
     return isOk;
 }
+
+Expection *ThreadPool::commitGet(CommitTask task, void *args)
+{
+}
+
+void ThreadPool::commitBatch(std::initializer_list<CommitTask> tasks)
+{
+}
