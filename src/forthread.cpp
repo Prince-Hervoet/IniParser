@@ -22,6 +22,7 @@ void Forthread::threadRunFunc(void *args)
     Task *task = ft->task;
     void *result = nullptr;
     Expection *exp = nullptr;
+    time_t timeout = ft->tp->timeout;
     for (;;)
     {
         while (task || (ft->isCore && (task = ft->tp->taskQueue->poll())) || (!ft->isCore && (task = ft->tp->taskQueue->tryPoll())))
@@ -33,9 +34,10 @@ void Forthread::threadRunFunc(void *args)
                 if (exp->isCancelFlag)
                 {
                     exp->setStatus(REJECTED);
-                    delete task;
                     exp->mu.unlock();
+                    delete task;
                     exp = nullptr;
+                    task = nullptr;
                     continue;
                 }
             }
@@ -44,7 +46,6 @@ void Forthread::threadRunFunc(void *args)
                 result = task->task(task->args);
                 if (exp)
                 {
-                    std::cout << "checkout " << std::endl;
                     exp->result = result;
                     exp->setStatus(FINISHED);
                     exp->mu.unlock();
@@ -75,7 +76,7 @@ void Forthread::threadRunFunc(void *args)
         else
         {
             time_t now = getNowTimestamp();
-            if (ft->startTimestamp + ft->tp->timeout <= now)
+            if (ft->startTimestamp + timeout <= now)
             {
                 break;
             }
