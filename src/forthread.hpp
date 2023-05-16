@@ -4,6 +4,12 @@
 #include "expection.hpp"
 
 class ThreadPool;
+typedef struct
+{
+    CommitTask task;
+    void *args;
+    Expection *exp;
+} Task;
 
 class Forthread
 {
@@ -12,18 +18,12 @@ private:
     Task *task;
     ThreadPool *tp;
     bool isCore = false;
+    time_t startTimestamp = 0;
     int status = THREAD_STATUS_STOP;
     static void threadRunFunc(void *args);
 
 public:
-    Forthread();
-    Forthread(Task *task, bool isCore);
+    Forthread(ThreadPool *tp);
+    Forthread(Task *task, bool isCore, ThreadPool *tp);
     void start();
 };
-
-typedef struct
-{
-    CommitTask task;
-    void *args;
-    Expection *exp;
-} Task;

@@ -16,6 +16,6 @@ typedef void (*Callback)(void *);
 #define POOL_STATUS_INIT 5
 #define POOL_STATUS_STOP -10
 #define POOL_STATUS_RUNNING 10
-#define POOL_STATUS_STOPING 20
+#define POOL_STATUS_DYING 20
 
 long_time getNowTimestamp();

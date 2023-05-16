@@ -1,37 +1,43 @@
 #include "threadpool.hpp"
+#include <iostream>
 
-ThreadPool *get_threadpool(int coreLimit, int maxLimit)
+ThreadPool *get_threadpool(int coreLimit, int maxThreadLimit, int maxTaskLimit)
 {
-    ThreadPool *tp = new ThreadPool(coreLimit, maxLimit);
+    ThreadPool *tp = new ThreadPool(coreLimit, maxThreadLimit, maxTaskLimit);
     return tp;
 }
 
-ThreadPool *get_threadpool(int coreLimit, int maxLimit, int rejectMode)
+ThreadPool *get_threadpool(int coreLimit, int maxLimit, int maxTaskLimit, int rejectMode)
 {
-    ThreadPool *tp = new ThreadPool(coreLimit, maxLimit, rejectMode);
+    ThreadPool *tp = new ThreadPool(coreLimit, maxLimit, maxTaskLimit, rejectMode);
     return tp;
 }
 
 ThreadPool::ThreadPool()
 {
+    this->taskQueue = new SimpleBlockQueue<Task *>(maxTaskLimit);
 }
 
-ThreadPool::ThreadPool(int coreLimit, int maxLimit)
+ThreadPool::ThreadPool(int coreLimit, int maxThreadLimit, int maxTaskLimit)
 {
-    if (coreLimit > 0 && maxLimit > 0)
+    if (coreLimit > 0 && maxThreadLimit > 0 && maxTaskLimit > 0)
     {
         this->coreLimit = coreLimit;
-        this->maxLimit = maxLimit;
+        this->maxThreadLimit = maxThreadLimit;
+        this->maxTaskLimit = maxTaskLimit;
+        this->taskQueue = new SimpleBlockQueue<Task *>(maxTaskLimit);
     }
 }
 
-ThreadPool::ThreadPool(int coreLimit, int maxLimit, int rejectMode)
+ThreadPool::ThreadPool(int coreLimit, int maxThreadLimit, int maxTaskLimit, int rejectMode)
 {
-    if (coreLimit > 0 && maxLimit > 0 && rejectMode <= -1 && rejectMode >= -3)
+    if (coreLimit > 0 && maxThreadLimit > 0 && maxTaskLimit > 0 && rejectMode <= -1 && rejectMode >= -3)
     {
         this->coreLimit = coreLimit;
-        this->maxLimit = maxLimit;
+        this->maxThreadLimit = maxThreadLimit;
+        this->maxTaskLimit = maxTaskLimit;
         this->rejectMode = rejectMode;
+        this->taskQueue = new SimpleBlockQueue<Task *>(maxTaskLimit);
     }
 }
 
@@ -61,20 +67,21 @@ bool ThreadPool::createWorker(Task *task, bool isCore)
         mu.lock();
         if (status == POOL_STATUS_RUNNING && current < coreLimit)
         {
-            Forthread *ft = new Forthread(task, isCore);
+            Forthread *ft = new Forthread(task, true, this);
             this->threads.push_back(ft);
             current += 1;
+            coreSize += 1;
             isOk = true;
             ft->start();
         }
         mu.unlock();
     }
-    if (!isCore && current < maxLimit)
+    if (!isCore && current < maxThreadLimit)
     {
         mu.lock();
-        if (status == POOL_STATUS_RUNNING && current < maxLimit)
+        if (status == POOL_STATUS_RUNNING && current < maxThreadLimit)
         {
-            Forthread *ft = new Forthread(task, isCore);
+            Forthread *ft = new Forthread(task, false, this);
             this->threads.push_back(ft);
             current += 1;
             isOk = true;
@@ -111,6 +118,10 @@ void ThreadPool::commitBatch(std::initializer_list<CommitTask> tasks)
 
 bool ThreadPool::finallyCommit(Task *taskPack)
 {
+    if (status != POOL_STATUS_RUNNING)
+    {
+        return false;
+    }
     if (coreSize < coreLimit)
     {
         if (createWorker(taskPack, true))
@@ -127,12 +138,29 @@ bool ThreadPool::finallyCommit(Task *taskPack)
         checkStop();
         return true;
     }
-    if (current < maxLimit)
+    if (current < maxThreadLimit)
     {
         if (createWorker(taskPack, false))
         {
             return true;
         }
+    }
+    return reject(taskPack);
+}
+
+bool ThreadPool::reject(Task *task)
+{
+    if (rejectMode == REJECT_MODE_DISCARD)
+    {
+        if (taskQueue->tryOffer(task))
+        {
+            return true;
+        }
+    }
+    else if (rejectMode == REJECT_MODE_WAIT)
+    {
+        taskQueue->offer(task);
+        return true;
     }
     return false;
 }
@@ -153,4 +181,27 @@ void ThreadPool::killThread(Forthread *ft)
             break;
         }
     }
+}
+
+bool ThreadPool::addToQueue(Task *task)
+{
+    if (rejectMode == REJECT_MODE_DISCARD)
+    {
+        return taskQueue->tryOffer(task);
+    }
+    else if (rejectMode == REJECT_MODE_WAIT)
+    {
+        taskQueue->offer(task);
+    }
+    return true;
+}
+
+void ThreadPool::checkStop()
+{
+    mu.lock();
+    if (status != POOL_STATUS_RUNNING)
+    {
+        createWorker(nullptr, false);
+    }
+    mu.unlock();
 }
