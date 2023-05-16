@@ -36,7 +36,6 @@ void *Expection::get()
 
 void Expection::setStatus(int status)
 {
-    std::unique_lock<std::mutex> lock(mu);
     this->status = status;
     cond.notify_one();
 }

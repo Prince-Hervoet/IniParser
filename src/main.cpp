@@ -6,18 +6,16 @@
 void *test(void *args)
 {
     std::cout << "操你妈test" << std::endl;
+    int *a = new int(123);
+    return a;
 }
 
 int main()
 {
     ThreadPool *tp = get_threadpool(2, 300, 5000);
-    tp->commit(test, nullptr);
+    Expection *exp = tp->commitGet(test, nullptr);
     std::this_thread::sleep_for(std::chrono::seconds(3));
-    tp->commit(test, nullptr);
-    std::this_thread::sleep_for(std::chrono::seconds(3));
-    tp->commit(test, nullptr);
-    std::this_thread::sleep_for(std::chrono::seconds(2));
-    std::cout << tp->getCoreSize() << std::endl;
+    std::cout << *(int *)(exp->get()) << std::endl;
     for (;;)
     {
     }

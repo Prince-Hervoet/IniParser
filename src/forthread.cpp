@@ -41,9 +41,12 @@ void Forthread::threadRunFunc(void *args)
             }
             try
             {
+
                 result = task->task(task->args);
+
                 if (exp)
                 {
+                    std::cout << "checkout " << std::endl;
                     exp->result = result;
                     exp->setStatus(FINISHED);
                     exp->mu.unlock();
