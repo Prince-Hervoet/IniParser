@@ -41,9 +41,7 @@ void Forthread::threadRunFunc(void *args)
             }
             try
             {
-
                 result = task->task(task->args);
-
                 if (exp)
                 {
                     std::cout << "checkout " << std::endl;
