@@ -49,7 +49,7 @@ void Forthread::threadRunFunc(void *args)
             std::cout << e << std::endl;
             if (exp)
             {
-                exp->result = result;
+                exp->result = nullptr;
                 exp->setStatus(REJECTED);
                 exp->mu.unlock();
             }
@@ -59,6 +59,7 @@ void Forthread::threadRunFunc(void *args)
             break;
         }
     }
+    ft->tp->killThread(ft);
 }
 
 Forthread::Forthread()

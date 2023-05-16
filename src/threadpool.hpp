@@ -19,9 +19,11 @@ private:
     volatile int status = POOL_STATUS_INIT;
     int rejectMode = REJECT_MODE_DISCARD;
     bool createWorker(Task *task, bool isCore);
+    bool finallyCommit(Task *task);
     bool addToQueue(Task *task);
     void checkStop();
-    static void batchFunc();
+    void killThread(Forthread *ft);
+    static void *batchFunc(void *args);
 
 public:
     ThreadPool();
@@ -32,3 +34,6 @@ public:
     void commitBatch(std::initializer_list<CommitTask> tasks);
     void stop();
 };
+
+ThreadPool *get_threadpool(int coreLimit, int maxLimit);
+ThreadPool *get_threadpool(int coreLimit, int maxLimit, int rejectMode);
