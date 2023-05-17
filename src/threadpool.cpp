@@ -13,6 +13,12 @@ ThreadPool *get_threadpool(int coreLimit, int maxLimit, int maxTaskLimit, int re
     return tp;
 }
 
+ThreadPool *get_threadpool(int coreLimit, int maxLimit, int maxTaskLimit, int rejectMode, time_t timeout)
+{
+    ThreadPool *tp = new ThreadPool(coreLimit, maxLimit, maxTaskLimit, rejectMode, timeout);
+    return tp;
+}
+
 ThreadPool::ThreadPool()
 {
     this->taskQueue = new SimpleBlockQueue<Task *>(maxTaskLimit);
@@ -37,6 +43,19 @@ ThreadPool::ThreadPool(int coreLimit, int maxThreadLimit, int maxTaskLimit, int 
         this->maxThreadLimit = maxThreadLimit;
         this->maxTaskLimit = maxTaskLimit;
         this->rejectMode = rejectMode;
+        this->taskQueue = new SimpleBlockQueue<Task *>(maxTaskLimit);
+    }
+}
+
+ThreadPool::ThreadPool(int coreLimit, int maxThreadLimit, int maxTaskLimit, int rejectMode, time_t timeout)
+{
+    if (coreLimit > 0 && maxThreadLimit > 0 && maxTaskLimit > 0 && rejectMode <= -1 && rejectMode >= -3 && timeout > 0)
+    {
+        this->coreLimit = coreLimit;
+        this->maxThreadLimit = maxThreadLimit;
+        this->maxTaskLimit = maxTaskLimit;
+        this->rejectMode = rejectMode;
+        this->timeout = timeout;
         this->taskQueue = new SimpleBlockQueue<Task *>(maxTaskLimit);
     }
 }
