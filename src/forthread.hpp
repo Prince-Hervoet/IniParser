@@ -11,6 +11,13 @@ typedef struct
     Expectation *exp;
 } Task;
 
+typedef struct
+{
+    CommitTask *tasks;
+    void **argss;
+    int count;
+} BatchTask;
+
 class Forthread
 {
 private:

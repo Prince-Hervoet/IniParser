@@ -112,10 +112,6 @@ Expectation *ThreadPool::commitGet(CommitTask task, void *args)
     return nullptr;
 }
 
-void ThreadPool::commitBatch(std::initializer_list<CommitTask> tasks)
-{
-}
-
 bool ThreadPool::finallyCommit(Task *taskPack)
 {
     if (status != POOL_STATUS_RUNNING)
@@ -167,6 +163,20 @@ bool ThreadPool::reject(Task *task)
 
 void *ThreadPool::batchFunc(void *args)
 {
+    BatchTask *tasks = (BatchTask *)(args);
+    CommitTask *run = tasks->tasks;
+    void **argsRun = tasks->argss;
+    for (int i = 0; i < tasks->count; i++)
+    {
+        try
+        {
+            run[i](argsRun[i]);
+        }
+        catch (const char *e)
+        {
+            std::cout << e << std::endl;
+        }
+    }
 }
 
 void ThreadPool::killThread(Forthread *ft)

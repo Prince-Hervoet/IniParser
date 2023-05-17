@@ -12,7 +12,7 @@ void *test(void *args)
 
 int main()
 {
-    ThreadPool *tp = get_threadpool(2, 300, 5000);
+    ThreadPool *tp = get_threadpool(2, 64, 5000);
     Expectation *exp = tp->commitGet(test, nullptr);
     void *result = exp->get();
     std::cout << *((int *)result) << "asdfsadf" << std::endl;

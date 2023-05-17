@@ -35,7 +35,7 @@ public:
     void setTimeout(time_t time);
     int commit(CommitTask task, void *args);
     Expectation *commitGet(CommitTask task, void *args);
-    void commitBatch(std::initializer_list<CommitTask> tasks);
+    void commitBatch(CommitTask tasks[], void *argss[], int count);
     void stop();
 
     int getCurrent()
