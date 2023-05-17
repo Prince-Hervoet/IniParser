@@ -202,6 +202,7 @@ bool ThreadPool::reject(Task *task)
         // 添加失败就返回失败，成功就成功
         if (taskQueue->tryOffer(task))
         {
+            checkStop();
             return true;
         }
     }
