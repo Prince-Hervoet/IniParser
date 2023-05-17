@@ -33,7 +33,6 @@ public:
     ThreadPool(int coreLimit, int maxThreadLimit, int maxTaskLimit);
     ThreadPool(int coreLimit, int maxThreadLimit, int maxTaskLimit, int rejectMode);
     ThreadPool(int coreLimit, int maxThreadLimit, int maxTaskLimit, int rejectMode, time_t timeout);
-    void setTimeout(time_t time);
     int commit(CommitTask task, void *args);
     Expectation *commitGet(CommitTask task, void *args);
     void stop();

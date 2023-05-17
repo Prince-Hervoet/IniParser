@@ -60,6 +60,9 @@ ThreadPool::ThreadPool(int coreLimit, int maxThreadLimit, int maxTaskLimit, int 
     }
 }
 
+/**
+ * common commit action (No return value is carried)
+ */
 int ThreadPool::commit(CommitTask task, void *args)
 {
     if (!task)
@@ -78,16 +81,20 @@ int ThreadPool::commit(CommitTask task, void *args)
     return 0;
 }
 
+/**
+ * create a worker thread
+ */
 bool ThreadPool::createWorker(Task *task, bool isCore)
 {
     bool isOk = false;
+    // 采用双重判断锁模式
     if (isCore && current < coreLimit)
     {
         mu.lock();
         if (status == POOL_STATUS_RUNNING && current < coreLimit)
         {
             Forthread *ft = new Forthread(task, true, this);
-            this->threads.push_back(ft);
+            this->threads.push_back(ft); // 将线程的引用放到线程池的列表中
             current += 1;
             coreSize += 1;
             isOk = true;
@@ -111,6 +118,9 @@ bool ThreadPool::createWorker(Task *task, bool isCore)
     return isOk;
 }
 
+/**
+ * A commit operation with a return value
+ */
 Expectation *ThreadPool::commitGet(CommitTask task, void *args)
 {
     if (!task)
@@ -131,47 +141,71 @@ Expectation *ThreadPool::commitGet(CommitTask task, void *args)
     return nullptr;
 }
 
+/**
+ * 最终会调用这个commit方法
+ */
 bool ThreadPool::finallyCommit(Task *taskPack)
 {
+    // 如果线程池停止了，则不能再添加任务
     if (status != POOL_STATUS_RUNNING)
     {
         return false;
     }
+
+    // 如果核心线程数小于规定的最大值，则选择创建核心线程来完成当前任务
     if (coreSize < coreLimit)
     {
+        // 进入创建方法
         if (createWorker(taskPack, true))
         {
             return true;
         }
+
+        // 如果创建核心线程失败，则说明线程池被停止了或者因为并发抢不到机会
         if (status != POOL_STATUS_RUNNING)
         {
             return false;
         }
     }
+
+    // 如果添加核心线程失败，而且没判断到线程池停止，就尝试添加到队列
     if (addToQueue(taskPack))
     {
+        // 添加成功之后，加锁判断线程池是否停止
         checkStop();
         return true;
     }
+
+    // 如果当前线程数小于最大线程数
     if (current < maxThreadLimit)
     {
+        // 进入创建线程方法
         if (createWorker(taskPack, false))
         {
             return true;
         }
     }
+
+    // 如果走到这里，则说明以上尝试都是失败，则执行拒绝操作
     return reject(taskPack);
 }
 
 bool ThreadPool::reject(Task *task)
 {
+    if (status != THREAD_STATUS_RUNNING)
+    {
+        return false;
+    }
+    // 如果是丢弃模式，则再次尝试添加到队列
     if (rejectMode == REJECT_MODE_DISCARD)
     {
+        // 添加失败就返回失败，成功就成功
         if (taskQueue->tryOffer(task))
         {
             return true;
         }
     }
+    // 如果是等待模式，就一直等待到成功插入队列
     else if (rejectMode == REJECT_MODE_WAIT)
     {
         taskQueue->offer(task);
@@ -214,23 +248,20 @@ void ThreadPool::killThread(Forthread *ft)
 
 bool ThreadPool::addToQueue(Task *task)
 {
-    if (rejectMode == REJECT_MODE_DISCARD)
-    {
-        return taskQueue->tryOffer(task);
-    }
-    else if (rejectMode == REJECT_MODE_WAIT)
-    {
-        taskQueue->offer(task);
-    }
-    return true;
+    return taskQueue->tryOffer(task);
 }
 
 void ThreadPool::checkStop()
 {
     mu.lock();
-    if (status != POOL_STATUS_RUNNING)
+    // 如果插入成功之后，线程池就停止了，则创建非核心线程处理剩下的任务
+    if (status != POOL_STATUS_RUNNING && this->taskQueue->size() > 0)
     {
         createWorker(nullptr, false);
     }
     mu.unlock();
+}
+
+void ThreadPool::stop()
+{
 }
