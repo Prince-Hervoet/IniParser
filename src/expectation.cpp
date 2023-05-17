@@ -1,11 +1,11 @@
-#include "expection.hpp"
+#include "expectation.hpp"
 
-int Expection::isDone()
+int Expectation::isDone()
 {
     return status;
 }
 
-bool Expection::cancel()
+bool Expectation::cancel()
 {
     if (mu.try_lock())
     {
@@ -19,12 +19,12 @@ bool Expection::cancel()
     }
 }
 
-bool Expection::isCancel()
+bool Expectation::isCancel()
 {
     return isCancelFlag;
 }
 
-void *Expection::get()
+void *Expectation::get()
 {
     std::unique_lock<std::mutex> lock(mu);
     while (status == PENDING)
@@ -34,8 +34,16 @@ void *Expection::get()
     return result;
 }
 
-void Expection::setStatus(int status)
+void Expectation::setStatus(int status)
 {
     this->status = status;
     cond.notify_one();
+}
+
+Expectation::Expectation()
+{
+}
+
+Expectation::~Expectation()
+{
 }

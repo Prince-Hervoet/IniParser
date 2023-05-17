@@ -6,7 +6,7 @@
 #define FINISHED 1
 #define REJECTED 0
 
-class Expection
+class Expectation
 {
     friend class Forthread;
 
@@ -19,6 +19,9 @@ private:
     void setStatus(int status);
 
 public:
+    Expectation();
+    ~Expectation();
+
     int isDone();
 
     bool cancel();

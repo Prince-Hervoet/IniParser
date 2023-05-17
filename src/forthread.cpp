@@ -21,7 +21,7 @@ void Forthread::threadRunFunc(void *args)
     Forthread *ft = (Forthread *)args;
     Task *task = ft->task;
     void *result = nullptr;
-    Expection *exp = nullptr;
+    Expectation *exp = nullptr;
     time_t timeout = ft->tp->timeout;
     for (;;)
     {

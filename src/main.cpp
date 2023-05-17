@@ -13,9 +13,9 @@ void *test(void *args)
 int main()
 {
     ThreadPool *tp = get_threadpool(2, 300, 5000);
-    Expection *exp = tp->commitGet(test, nullptr);
-    std::this_thread::sleep_for(std::chrono::seconds(3));
-    std::cout << *(int *)(exp->get()) << std::endl;
+    Expectation *exp = tp->commitGet(test, nullptr);
+    void *result = exp->get();
+    std::cout << *((int *)result) << "asdfsadf" << std::endl;
     for (;;)
     {
     }

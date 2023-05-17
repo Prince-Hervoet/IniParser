@@ -92,14 +92,14 @@ bool ThreadPool::createWorker(Task *task, bool isCore)
     return isOk;
 }
 
-Expection *ThreadPool::commitGet(CommitTask task, void *args)
+Expectation *ThreadPool::commitGet(CommitTask task, void *args)
 {
     if (!task)
     {
         return nullptr;
     }
     Task *taskPack = new Task();
-    Expection *exp = new Expection();
+    Expectation *exp = new Expectation();
     taskPack->task = task;
     taskPack->args = args;
     taskPack->exp = exp;

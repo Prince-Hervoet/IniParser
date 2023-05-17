@@ -1,14 +1,14 @@
 #pragma once
 #include <thread>
 #include "util.hpp"
-#include "expection.hpp"
+#include "expectation.hpp"
 
 class ThreadPool;
 typedef struct
 {
     CommitTask task;
     void *args;
-    Expection *exp;
+    Expectation *exp;
 } Task;
 
 class Forthread
