@@ -1,5 +1,5 @@
 #include <mutex>
-#include <queue>
+#include <deque>
 #include <condition_variable>
 #include <iostream>
 
@@ -10,13 +10,25 @@ private:
     std::mutex mu;
     std::condition_variable pollCond;
     std::condition_variable offerCond;
-    std::queue<T> data;
+    std::deque<T> data;
     int limit = 512;
 
 public:
     SimpleBlockQueue(int limit)
     {
         this->limit = limit;
+    }
+
+    void remove(T t)
+    {
+        for (auto it = data.begin(); it != data.end(); it++)
+        {
+            if (*it == t)
+            {
+                data.erase(it);
+                break;
+            }
+        }
     }
 
     void offer(T t)
@@ -26,7 +38,7 @@ public:
         {
             offerCond.wait(lock);
         }
-        data.push(t);
+        data.push_back(t);
         pollCond.notify_one();
     }
 
@@ -38,7 +50,7 @@ public:
             pollCond.wait(lock);
         }
         T t = data.front();
-        data.pop();
+        data.pop_front();
         offerCond.notify_one();
         return t;
     }
@@ -50,7 +62,7 @@ public:
         {
             return false;
         }
-        data.push(t);
+        data.push_back(t);
         pollCond.notify_one();
         return true;
     }
@@ -63,7 +75,7 @@ public:
             return NULL;
         }
         T t = data.front();
-        data.pop();
+        data.pop_front();
         offerCond.notify_one();
         return t;
     }

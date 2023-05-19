@@ -172,8 +172,7 @@ bool ThreadPool::finallyCommit(Task *taskPack)
     if (addToQueue(taskPack))
     {
         // 添加成功之后，加锁判断线程池是否停止
-        checkStop();
-        return true;
+        return checkStop(taskPack);
     }
 
     // 如果当前线程数小于最大线程数
@@ -202,8 +201,7 @@ bool ThreadPool::reject(Task *task)
         // 添加失败就返回失败，成功就成功
         if (taskQueue->tryOffer(task))
         {
-            checkStop();
-            return true;
+            return checkStop(task);
         }
     }
     // 如果是等待模式，就一直等待到成功插入队列
@@ -249,20 +247,29 @@ void ThreadPool::killThread(Forthread *ft)
 
 bool ThreadPool::addToQueue(Task *task)
 {
+    if (status != THREAD_STATUS_RUNNING)
+    {
+        return false;
+    }
     return taskQueue->tryOffer(task);
 }
 
-void ThreadPool::checkStop()
+bool ThreadPool::checkStop(Task *task)
 {
-    mu.lock();
+    std::unique_lock<std::mutex> lock(mu);
     // 如果插入成功之后，线程池就停止了，则创建非核心线程处理剩下的任务
     if (status != POOL_STATUS_RUNNING && this->taskQueue->size() > 0)
     {
-        createWorker(nullptr, false);
+        taskQueue->remove(task);
+        return false;
     }
-    mu.unlock();
+    return true;
 }
 
 void ThreadPool::stop()
 {
+    mu.lock();
+    this->status = THREAD_STATUS_STOP;
+
+    mu.unlock();
 }

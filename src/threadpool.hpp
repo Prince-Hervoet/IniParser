@@ -23,7 +23,7 @@ private:
     bool createWorker(Task *task, bool isCore);
     bool finallyCommit(Task *task);
     bool addToQueue(Task *task);
-    void checkStop();
+    bool checkStop(Task *task);
     void killThread(Forthread *ft);
     bool reject(Task *task);
     static void *batchFunc(void *args);
