@@ -13,11 +13,11 @@ class IniParser {
  private:
   RecordType record;
   bool has_file = false;
-  static const char kCommentFlag1 = '#';
-  static const char kCommentFlag2 = ';';
-  static const char kSectionStartFlag = '[';
-  static const char kSectionEndFlag = ']';
-  static const char kKeyValueFlag = '=';
+  static const char kCommentFlag1 = '#';      // 注释开始标志1
+  static const char kCommentFlag2 = ';';      // 注释开始标志2
+  static const char kSectionStartFlag = '[';  // 段开始标志
+  static const char kSectionEndFlag = ']';    // 段结束标志
+  static const char kKeyValueFlag = '=';      // 键值对间隔标志
 
  public:
   int LoadFile(const char* path);
