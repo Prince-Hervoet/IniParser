@@ -73,10 +73,10 @@ void IniParser::parseFileString(StringType& in_line,
 }
 
 std::string IniParser::GetValue(const StringType& section,
-                                const StringType& key) {
+                                const StringType& key) const {
   if (section.size() == 0 || key.size() == 0) return "";
   if (record.count(section) == 0) return "";
-  if (record[section].count(key) == 0) return "";
+  if (record.at(section).count(key) == 0) return "";
   return record.at(section).at(key);
 }
 

@@ -22,7 +22,7 @@ class IniParser {
  public:
   int LoadFile(const char* path);
 
-  StringType GetValue(const StringType& section, const StringType& key);
+  StringType GetValue(const StringType& section, const StringType& key) const;
 
   void Reset() {
     record.clear();
