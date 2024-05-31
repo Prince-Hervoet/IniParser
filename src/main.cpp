@@ -1,19 +1,11 @@
 #include <iostream>
-#include <chrono>
-#include <thread>
-#include "threadpool.hpp"
 
-void *test(void *args)
-{
-    std::cout << "操你妈test" << std::endl;
-}
+#include "ini_parser.hpp"
 
-int main()
-{
-    ThreadPool *tp = get_threadpool(2, 64, 5000);
-    tp->commit(test, nullptr);
-
-    for (;;)
-    {
-    }
+int main() {
+  let_me_see::IniParser ini_parser;
+  int a = ini_parser.LoadFile(("./test.ini"));
+  std::string value = ini_parser.GetValue("section1123", "database_url");
+  std::cout << value << std::endl;
+  return 0;
 }
